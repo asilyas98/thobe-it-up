@@ -44,6 +44,11 @@ workflows:
           }
           JSON
           fi
+      - name: Increment iOS build number
+        script: |
+          BUILD_VERSION=$((PROJECT_BUILD_NUMBER + 1))
+          cd ios/App
+          agvtool new-version -all "$BUILD_VERSION"
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build signed IPA
