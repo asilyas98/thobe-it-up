@@ -1,0 +1,6 @@
+project_id = "ryohklrflcfqzzplcske"
+
+# The site uses the new publishable key, so the gateway JWT check is off;
+# the function verifies the user's session itself.
+[functions.ai-agent]
+verify_jwt = false
