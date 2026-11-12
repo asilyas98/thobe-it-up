@@ -5,7 +5,7 @@ workflows:
     max_build_duration: 60
     environment:
       groups:
-        - thobe
+        - thobe-it-up
       node: 22
       xcode: latest
       cocoapods: default
@@ -13,15 +13,37 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.simpleai.thobeitup
     scripts:
-      - name: Install web dependencies
-        script: npm ci --no-audit --no-fund
+      - name: Install web and Capacitor dependencies
+        script: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund @capacitor/core@7 @capacitor/ios@7 @capacitor/cli@7
       - name: Build marketplace
         script: npm run build
       - name: Generate and sync iOS project
         script: |
+          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.js ] && [ ! -f capacitor.config.ts ]; then
+            cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "com.simpleai.thobeitup",
+            "appName": "Thobe It Up",
+            "webDir": "dist",
+            "ios": { "contentInset": "automatic", "preferredContentMode": "mobile" }
+          }
+          JSON
+          fi
           if [ ! -d ios/App ]; then npx cap add ios; fi
           npx cap sync ios
-          sh scripts/install-ios-icon.sh
+          if [ -f assets/ios/AppIcon.png ]; then
+            icon_set="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+            mkdir -p "$icon_set"
+            cp assets/ios/AppIcon.png "$icon_set/AppIcon.png"
+            cat > "$icon_set/Contents.json" <<'JSON'
+          {
+            "images": [{ "filename": "AppIcon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" }],
+            "info": { "author": "xcode", "version": 1 }
+          }
+          JSON
+          fi
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build signed IPA
