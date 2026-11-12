@@ -1,0 +1,38 @@
+workflows:
+  thobe-it-up-ios:
+    name: Thobe It Up iOS App Store build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups:
+        - thobe
+      node: 22
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.simpleai.thobeitup
+    scripts:
+      - name: Install web dependencies
+        script: npm ci --no-audit --no-fund
+      - name: Build marketplace
+        script: npm run build
+      - name: Generate and sync iOS project
+        script: |
+          if [ ! -d ios/App ]; then npx cap add ios; fi
+          npx cap sync ios
+          sh scripts/install-ios-icon.sh
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - build/ios/archive/*.xcarchive
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: NLV25X8A5S
+        issuer_id: 18872f51-eb5b-49fc-bc34-d78bbb7d5a65
+        submit_to_testflight: true
